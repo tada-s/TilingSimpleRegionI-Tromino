@@ -3,182 +3,250 @@ var tile = [];
 var point = [];
 var existTiling = false;
 
-var pointIndex;
-var isTilable;
-var INF = 99999;
+var isBoundaryPoint = [];
+var basePointIndex = -1;
+var basePoint = -1;
+var isTilable = false;
 
- 
 function newPointFrom(p, c){
 	var newPoint = {};
+
+	var trieNode = p.trieNode;
+
 	switch(c){
 	case "e":
 		newPoint.x = p.x + 1;
 		newPoint.y = p.y;
-		newPoint.w = p.w + "e";
-		newPoint.ww = p.ww + "a";
+		trieNode = addTrieNode(trieNode, "a");
+		//newPoint.ww = p.ww + "a";
 		break;
 	case "w":
 		newPoint.x = p.x - 1;
 		newPoint.y = p.y;
-		newPoint.w = p.w + "w";
-		newPoint.ww = p.ww + "aa";
+		trieNode = addTrieNode(trieNode, "a");
+		trieNode = addTrieNode(trieNode, "a");
 		break;
 	case "n":
 		newPoint.x = p.x;
 		newPoint.y = p.y + 1;
-		newPoint.w = p.w + "n";
-		newPoint.ww = p.ww + "b";
+		trieNode = addTrieNode(trieNode, "b");
 		break;
 	case "s":
 		newPoint.x = p.x;
 		newPoint.y = p.y - 1;
-		newPoint.w = p.w + "s";
-		newPoint.ww = p.ww + "bb";
+		trieNode = addTrieNode(trieNode, "b");
+		trieNode = addTrieNode(trieNode, "b");
 		break;
 	}
-	var ww = newPoint.ww;
-	if(ww.length >= 3 && (ww.substr(ww.length - 3, 3) === "aaa" || ww.substr(ww.length - 3, 3) === "bbb")){
-		ww = ww.substr(0, ww.length - 3);
+	
+	if(trieNode.chain >= 3){
+		for(var i = 0; i < 3; i++){
+			trieNode = trieNode.parent;
+		}
 	}
-	newPoint.ww = ww;
+	newPoint.trieNode = trieNode;
 	newPoint.lastChar = c;
-	newPoint.height = height(newPoint.ww);
+	newPoint.height = trieNode.alternating;
 	return newPoint;
 }
 
 function initializeBoundary(){
 	tile = [];
 	point = [];
-	point.push({});
-	point[0].x = 0;
-	point[0].y = 0;
-	point[0].height = 0;
-	point[0].w = "";
-	point[0].ww = "";
-	point[0].lastChar = bR.charAt(bR.length - 1);
+	
+	isBoundaryPoint = [];
+	
+	initTrie();
+	initPriorityQueue(bR.length);
+	
+	
+	// Create a base point
+	basePoint = {};
+	basePoint.x = 0;
+	basePoint.y = 0;
+	basePoint.height = 0;
+	//basePoint.ww = "";
+	basePoint.trieNode = trie[0];
+	basePoint.lastChar = bR.charAt(bR.length - 1);
+	basePoint.id = 0;
+	point.push(basePoint);
+	isBoundaryPoint.push(true);
+
+	// Create points of the boundary
 	for(var i = 0; i < bR.length; i++){
 		var c = bR.charAt(i);
 		point.push(newPointFrom(point[i], c));
-		point[i].next = i + 1;
-		point[i + 1].prev = i;
+		point[i + 1].id = i + 1;
+		isBoundaryPoint.push(true);
+
+		point[i].next = point[i + 1].id;
+		point[i + 1].prev = point[i].id;
 	}
 	
+	// If the boundary cannot close into a loop
 	if(!(point[0].x == point[bR.length].x && point[0].y == point[bR.length].y) || point[bR.length].height != 0){
+		// Then, there is no tiling for the region
 		existTiling = false;
+		isTilable = false;
 	}else{
+		// Otherwise, close the loop and prepare for the iteration
 		existTiling = true;
+		isTilable = true;
+
 		point[0].prev = bR.length - 1;
 		point[bR.length - 1].next = 0;
+		isBoundaryPoint[bR.length] = false;
 		
-		pointIndex = 0;
-		
-		
-		isTilable = true;
+		for(var i = 0; i < bR.length; i++){
+			var i2 = (i + 1) % bR.length;
+			if(point[i].height == point[i2].height){
+				pushPriorityQueue(point[i2]);
+			}
+		}
 	}
 }
 
 function iterationStep(){
-		if(!isTilable) return;
+	if(!isTilable) return;
 	
-		var maxPointIndex = -1;
-		var maxPoint = null;
-		var maxHeight = -INF;
-		var initialPointIndex = pointIndex;
-		do{
-			var p = point[pointIndex];
-			if(maxHeight <= p.height){
-				maxHeight = p.height;
-				if(point[p.prev].height == maxHeight){
-					maxPointIndex = pointIndex;
-					maxPoint = p;
-				}
+	// Get the maximum height point
+	/*var travelingPoint = basePoint;
+	var maxPoint = null;
+	var maxHeight = travelingPoint.height;
+	do{
+		var p = travelingPoint;
+		if(maxHeight <= travelingPoint.height){
+			maxHeight = travelingPoint.height;
+			if(point[travelingPoint.prev].height == maxHeight){
+				maxPoint = travelingPoint;
 			}
-			pointIndex = p.next;
-		}while(pointIndex != initialPointIndex);
+		}
+		travelingPoint = point[travelingPoint.next];
+	}while(travelingPoint.id != basePoint.id);*/
+	var maxPoint = null;
+	maxPoint = popPriorityQueue();
+	while(true){
+		if(isBoundaryPoint[maxPoint.id]){
+			var p0 = point[maxPoint.next];
+			var p1 = point[p0.prev];
+			var p2 = point[p1.prev];
+			if(p0.lastChar === p1.lastChar && p1.lastChar === p2.lastChar){
+				break;
+			}
+		}
+		maxPoint = popPriorityQueue();
+	}
+	
+	// Get the I-tromino direction
+	var tileDirection = point[maxPoint.prev].lastChar;
+	
+	// Save the I-tromino information
+	tile.push({direction:tileDirection, origin:{x:maxPoint.x, y:maxPoint.y}});
+	
+	// Update the boundary
+
+	// Boundary cutting information:
+	var inverseTileWord = "";
+	var tileWord = "";
+	switch(tileDirection){
+	case "s":
+		inverseTileWord = "sswnnnes";
+		tileWord = "nnessswn";
+		break;
+	case "n":
+		inverseTileWord = "nnessswn";
+		tileWord = "sswnnnes";
+		break;
+	case "e":
+		inverseTileWord = "eeswwwne";
+		tileWord = "wwneeesw";
+		break;
+	case "w":
+		inverseTileWord = "wwneeesw";
+		tileWord = "eeswwwne";
+		break;
+	}
+	
+	// Get two points of the boundary {cutIndex1, cutIndex2} to cut and insert a new path.
+	var inverseTileWordIndex1 = 0;
+	var cutPoint1 = maxPoint;
+	while(cutPoint1.lastChar === inverseTileWord.charAt(inverseTileWordIndex1) && inverseTileWordIndex1 < 8){
+		isBoundaryPoint[cutPoint1.id] = false;
+		cutPoint1 = point[cutPoint1.prev];
+		inverseTileWordIndex1++;
+	}
+
+	var inverseTileWordIndex2 = 7;
+	var cutPoint2 = maxPoint;
+	while(point[cutPoint2.next].lastChar === inverseTileWord.charAt(inverseTileWordIndex2) && inverseTileWordIndex1 < inverseTileWordIndex2){
+		isBoundaryPoint[cutPoint2.id] = false;
+		cutPoint2 = point[cutPoint2.next];
+		inverseTileWordIndex2--;
+	}
+
+	// Cut and insert a new path.
+	var travelingPoint2 = cutPoint1;
+	for(var i = inverseTileWordIndex1; i < inverseTileWordIndex2; i++){
+		var c = tileWord[i];
+
+		// Create a new point from travelingPoint2 in direction of c
+		var newPoint = newPointFrom(travelingPoint2, c)
+		newPoint.id = point.length;
+		point.push(newPoint);
+		isBoundaryPoint.push(true);
 		
-		var tileDirection = point[maxPoint.prev].lastChar;
-
-		tile.push({direction:tileDirection, origin:{x:maxPoint.x, y:maxPoint.y}});
-
-		var inverseWord = "";
-		switch(tileDirection){
-		case "s":
-			inverseTileWord = "sswnnnes";
-			tileWord = "nnessswn";
-			break;
-		case "n":
-			inverseTileWord = "nnessswn";
-			tileWord = "sswnnnes";
-			break;
-		case "e":
-			inverseTileWord = "eeswwwne";
-			tileWord = "wwneeesw";
-			break;
-		case "w":
-			inverseTileWord = "wwneeesw";
-			tileWord = "eeswwwne";
-			break;
+		// Link the new point to travelingPoint2
+		newPoint.prev = travelingPoint2.id
+		travelingPoint2.next = newPoint.id;
+		
+		if(travelingPoint2.height == newPoint.height){
+			pushPriorityQueue(newPoint);
 		}
 		
-		var inverseTileWordIndex1 = 0;
-		var cutIndex1 = maxPointIndex;
-		var inverseTileWordIndex2 = 7;
-		var cutIndex2 = maxPointIndex;
+		travelingPoint2 = newPoint;
+	}
+	travelingPoint2.next = cutPoint2.id;
+	cutPoint2.prev = travelingPoint2.id;
+	cutPoint2.lastChar = tileWord[inverseTileWordIndex2];
 
-		while(point[cutIndex1].lastChar === inverseTileWord.charAt(inverseTileWordIndex1)){
-			cutIndex1 = point[cutIndex1].prev;
-			inverseTileWordIndex1++;
-		}
+	if(travelingPoint2.height == cutPoint2.height){
+		pushPriorityQueue(cutPoint2);
+	}
 
-		while(point[point[cutIndex2].next].lastChar === inverseTileWord.charAt(inverseTileWordIndex2)){
-			cutIndex2 = point[cutIndex2].next;
-			inverseTileWordIndex2--;
-		}
-
-		var lastPointIndex = cutIndex1;
-		for(var i = inverseTileWordIndex1; i < inverseTileWordIndex2; i++){
-			var c = tileWord[i];
-
-			var newPointIndex = point.length;
-			point.push(newPointFrom(point[lastPointIndex], c));
-			point[newPointIndex].prev = lastPointIndex
-			point[lastPointIndex].next = newPointIndex;
-
-			lastPointIndex = newPointIndex;
-		}
-		point[lastPointIndex].next = cutIndex2;
-		point[cutIndex2].prev = lastPointIndex;
-		point[cutIndex2].lastChar = tileWord[inverseTileWordIndex2];
-
-		pointIndex = cutIndex2;
-		
-		if(cutIndex1 == cutIndex2){
-			
-			isTilable = false;
-		}
+	// Update the base point of the boundary to prepare for the next iteration
+	basePoint = cutPoint2;
+	
+	// If the cutPoint meets, the region is a tromino and stop the iteration.
+	if(cutPoint1.id == cutPoint2.id){
+		isTilable = false;
+	}
 }
 
 function computeTiling(){
 	initializeBoundary();
-	var kk = 100;
+	var maxIteration = 100;
 	while(isTilable){
-		/*console.log("----------------");
-		for(var i = 0; i < point.length; i++){
-			console.log("" + i + "\tPrev: " + point[i].prev + " \tNext: " + point[i].next + " \tHeight: " + point[i].height + "\tWord: " + point[i].w + "\tWWord: " + point[i].ww);
-		}
-		console.log("----------------");*/
 		iterationStep();
-		kk--; if(kk == 0) break;
+		maxIteration--; if(maxIteration < 0) break;
 	}
-
-	/*console.log("----------------");
-	for(var i = 0; i < point.length; i++){
-		console.log("" + i + "\tPrev: " + point[i].prev + " \tNext: " + point[i].next + " \tHeight: " + point[i].height + "\tWord: " + point[i].w + "\tWWord: " + point[i].ww);
-	}
-	console.log("----------------");*/
 }
 
-function height(w){
+// Height function replaced by trie data structure
+/*function height(w){
+	var a = 0;
+	var expectedChar = "-";
+	for(var i = 0; i < w.length; i++){
+		var c = w.charAt(i);
+		if(c !== expectedChar){
+			expectedChar = c;
+			a++;
+		}
+	}
+	return a;
+}*/
+
+// The original height function of kenyon
+/*function height2(w){
 	var n = 0;
 	for(; n < w.length; n++){
 		var c = w.charAt(n);
@@ -187,12 +255,8 @@ function height(w){
 		}
 	}
 	
-	var sign = 1;
 	var a = 0;
 	var expectedChar = "-";
-	if(n == 0 && w.length > 0 && w.charAt(0) === "b"){
-		sign = 1;
-	}
 	for(var i = n; i < w.length; i++){
 		var c = w.charAt(i);
 		if(c !== expectedChar){
@@ -201,6 +265,6 @@ function height(w){
 		}
 	}
 	return -n + sign * a;
-}
+}*/
 
 
