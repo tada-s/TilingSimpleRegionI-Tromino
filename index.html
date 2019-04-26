@@ -11,6 +11,10 @@
 			background-color: rgb(17, 17, 17);
 		}
 
+		a{
+			color: rgb(200, 200, 200);
+		}
+
 		canvas{
 			margin-left: 50px;
 			border: 2px solid rgb(48, 48, 48);
@@ -61,13 +65,17 @@
 This is an implementation of the algorithm described in <a href="http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.8.7471">"Tiling a Polygon with Rectangles" (doi:10.1.1.8.7471)</a> by Claire Kenyon and Richard Kenyon.<br>
 </p>
 <p>
-Input the boundary of a region: <input type="text" id="inputText" value="eeeennennnnnnnwwwwwwswsswsessseess" autocomplete='off'> (where the character  'e', 'w', 'n' and 's' are east, west, north and south respectively).<br>
+Input the boundary of a region: <input type="text" id="inputText" value="eeeennennnnnnnwwwwwwswsswsessseess" autocomplete='off'> (where the character 'e', 'w', 'n' and 's' are east, west, north and south respectively).<br>
+<button id="buttonEdit">Edit mode</button>
 </p>
 <p>
-Then press the button to compute a tiling: <button id="buttonCompute">Compute tiling</button>. (Optional) To compute the tiling step by step: <button id="buttonInitialize">Initialization</button> <button id="buttonStep">Iteration step</button><br>
+To compute the tiling step by step: <button id="buttonInitialize">Restart</button> <button id="buttonStep">Add an I-tromino</button> or <button id="buttonCompute">Pack all I-trominoes</button><br>
+</p>
+<p> <button id="buttonShowBoundary">Show Boundary information</button> <br>
 </p>
 	<canvas id="canvasMain" width="1024px" height="768px" style="border: 1px solid black;"></canvas><br>
 
+	<script src="global_variable.js"></script>
 	<script src="data_structure.js"></script>
 	<script src="tiling.js"></script>
 	<script src="draw.js"></script>

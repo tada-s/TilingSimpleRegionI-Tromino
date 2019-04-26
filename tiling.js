@@ -1,53 +1,15 @@
-var bR = "";
-var tile = [];
-var point = [];
-var existTiling = false;
 
 var isBoundaryPoint = [];
 var basePointIndex = -1;
-var basePoint = -1;
-var isTilable = false;
+var basePoint = {};
 
-function newPointFrom(p, c){
-	var newPoint = {};
-
-	var trieNode = p.trieNode;
-
-	switch(c){
-	case "e":
-		newPoint.x = p.x + 1;
-		newPoint.y = p.y;
-		trieNode = addTrieNode(trieNode, "a");
-		//newPoint.ww = p.ww + "a";
-		break;
-	case "w":
-		newPoint.x = p.x - 1;
-		newPoint.y = p.y;
-		trieNode = addTrieNode(trieNode, "a");
-		trieNode = addTrieNode(trieNode, "a");
-		break;
-	case "n":
-		newPoint.x = p.x;
-		newPoint.y = p.y + 1;
-		trieNode = addTrieNode(trieNode, "b");
-		break;
-	case "s":
-		newPoint.x = p.x;
-		newPoint.y = p.y - 1;
-		trieNode = addTrieNode(trieNode, "b");
-		trieNode = addTrieNode(trieNode, "b");
-		break;
+function computeTiling(){
+	initializeBoundary();
+	var maxIteration = 100;
+	while(isTilable){
+		iterationStep();
+		maxIteration--; if(maxIteration < 0) break;
 	}
-	
-	if(trieNode.chain >= 3){
-		for(var i = 0; i < 3; i++){
-			trieNode = trieNode.parent;
-		}
-	}
-	newPoint.trieNode = trieNode;
-	newPoint.lastChar = c;
-	newPoint.height = trieNode.alternating;
-	return newPoint;
 }
 
 function initializeBoundary(){
@@ -65,13 +27,16 @@ function initializeBoundary(){
 	basePoint.x = 0;
 	basePoint.y = 0;
 	basePoint.height = 0;
-	//basePoint.ww = "";
 	basePoint.trieNode = trie[0];
 	basePoint.lastChar = bR.charAt(bR.length - 1);
 	basePoint.id = 0;
 	point.push(basePoint);
 	isBoundaryPoint.push(true);
-
+	
+	if(bR.length == 0){
+		return;
+	}
+	
 	// Create points of the boundary
 	for(var i = 0; i < bR.length; i++){
 		var c = bR.charAt(i);
@@ -110,19 +75,6 @@ function iterationStep(){
 	if(!isTilable) return;
 	
 	// Get the maximum height point
-	/*var travelingPoint = basePoint;
-	var maxPoint = null;
-	var maxHeight = travelingPoint.height;
-	do{
-		var p = travelingPoint;
-		if(maxHeight <= travelingPoint.height){
-			maxHeight = travelingPoint.height;
-			if(point[travelingPoint.prev].height == maxHeight){
-				maxPoint = travelingPoint;
-			}
-		}
-		travelingPoint = point[travelingPoint.next];
-	}while(travelingPoint.id != basePoint.id);*/
 	var maxPoint = null;
 	maxPoint = popPriorityQueue();
 	while(true){
@@ -183,7 +135,7 @@ function iterationStep(){
 		cutPoint2 = point[cutPoint2.next];
 		inverseTileWordIndex2--;
 	}
-
+	
 	// Cut and insert a new path.
 	var travelingPoint2 = cutPoint1;
 	for(var i = inverseTileWordIndex1; i < inverseTileWordIndex2; i++){
@@ -212,6 +164,25 @@ function iterationStep(){
 	if(travelingPoint2.height == cutPoint2.height){
 		pushPriorityQueue(cutPoint2);
 	}
+	
+	// Remove degenerated boundary
+	var degeneratedBoundary;
+	do{
+		degeneratedBoundary = false;
+		var pairChar = cutPoint2.lastChar + point[cutPoint2.next].lastChar;
+		if(pairChar === "ns" || pairChar === "sn" || pairChar === "ew" || pairChar === "we"){
+			var p0 = point[cutPoint2.prev];
+			var p1 = point[p0.next];
+			var p2 = point[p1.next];
+			var p3 = point[p2.next];
+			isBoundaryPoint[p1.id] = false;
+			isBoundaryPoint[p2.id] = false;
+			p0.next = p3.id;
+			p3.prev = p0.id;
+			cutPoint2 = p0;
+			degeneratedBoundary = true;
+		}
+	}while(degeneratedBoundary);
 
 	// Update the base point of the boundary to prepare for the next iteration
 	basePoint = cutPoint2;
@@ -222,49 +193,45 @@ function iterationStep(){
 	}
 }
 
-function computeTiling(){
-	initializeBoundary();
-	var maxIteration = 100;
-	while(isTilable){
-		iterationStep();
-		maxIteration--; if(maxIteration < 0) break;
-	}
-}
+// Create a new point from point "p" in the direction "dir"
+function newPointFrom(p, dir){
+	var newPoint = {};
 
-// Height function replaced by trie data structure
-/*function height(w){
-	var a = 0;
-	var expectedChar = "-";
-	for(var i = 0; i < w.length; i++){
-		var c = w.charAt(i);
-		if(c !== expectedChar){
-			expectedChar = c;
-			a++;
-		}
-	}
-	return a;
-}*/
+	var trieNode = p.trieNode;
 
-// The original height function of kenyon
-/*function height2(w){
-	var n = 0;
-	for(; n < w.length; n++){
-		var c = w.charAt(n);
-		if(!((n % 2 == 0 && c === "a") || (n % 2 == 1 && c === "b"))){
-			break;
-		}
+	switch(dir){
+	case "e":
+		newPoint.x = p.x + 1;
+		newPoint.y = p.y;
+		trieNode = addTrieNode(trieNode, "a");
+		break;
+	case "w":
+		newPoint.x = p.x - 1;
+		newPoint.y = p.y;
+		trieNode = addTrieNode(trieNode, "a");
+		trieNode = addTrieNode(trieNode, "a");
+		break;
+	case "n":
+		newPoint.x = p.x;
+		newPoint.y = p.y + 1;
+		trieNode = addTrieNode(trieNode, "b");
+		break;
+	case "s":
+		newPoint.x = p.x;
+		newPoint.y = p.y - 1;
+		trieNode = addTrieNode(trieNode, "b");
+		trieNode = addTrieNode(trieNode, "b");
+		break;
 	}
 	
-	var a = 0;
-	var expectedChar = "-";
-	for(var i = n; i < w.length; i++){
-		var c = w.charAt(i);
-		if(c !== expectedChar){
-			expectedChar = c;
-			a++;
+	if(trieNode.chain >= 3){
+		for(var i = 0; i < 3; i++){
+			trieNode = trieNode.parent;
 		}
 	}
-	return -n + sign * a;
-}*/
-
+	newPoint.trieNode = trieNode;
+	newPoint.lastChar = dir;
+	newPoint.height = trieNode.alternating;
+	return newPoint;
+}
 

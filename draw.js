@@ -1,19 +1,86 @@
-var coordBoardScreenOffX = 200;
-var coordBoardScreenOffY = 200;
-
-var unitSize = 50;
 
 function initDraw(){
-	inputText = document.getElementById("inputText");
-	
-	elementCanvas = document.getElementById("canvasMain");
-	coordBoardScreenOffX = elementCanvas.width / 2 - 50;
-	coordBoardScreenOffY = elementCanvas.height / 2 + 200;
+	var elementCanvas = document.getElementById("canvasMain");
+	cameraCoord.x = elementCanvas.width / 2 - 50;
+	cameraCoord.y = elementCanvas.height / 2 + 200;
 	ctx = elementCanvas.getContext("2d");
 
 	ctx.lineJoin = "round";
 	ctx.lineCap = "round";
 }
+
+/* Main drawing function */
+
+function draw(){
+	clearCanvas();
+	
+	if(editMode){
+		// draw grid
+		ctx.strokeStyle = "rgb(240, 240, 240)";
+		ctx.lineWidth = 1;
+		drawGrid();
+
+		// draw region boundary
+		ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
+		ctx.lineWidth = 5;
+		drawBoundary();
+		
+		// draw movable boundary last point
+		ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+		drawEndPoint();
+		
+		// draw height
+		ctx.fillStyle = "rgba(0, 150, 150, 1)";
+		ctx.font = "15px Arial";
+		drawHeight();
+	}else{
+		if(existTiling){
+			// draw grid
+			ctx.strokeStyle = "rgb(240, 240, 240)";
+			ctx.lineWidth = 1;
+			drawGrid();
+
+			// draw trominoes
+			ctx.fillStyle = "rgba(230, 230, 230, 1)";
+			ctx.strokeStyle = "rgb(100, 100, 100)";
+			ctx.lineWidth = 3;
+			drawTrominoes();
+
+			// draw region boundary
+			ctx.strokeStyle = "rgb(0, 0, 0)";
+			ctx.lineWidth = 3;
+			drawBoundary();
+			if(showBoundaryInfo){
+				// draw height
+				ctx.fillStyle = "rgba(0, 150, 150, 1)";
+				ctx.font = "15px Arial";
+				drawHeight();
+				
+				// draw boundary color
+				drawCurrentBoundary();
+			}
+		}else{
+			// draw grid
+			ctx.strokeStyle = "rgb(240, 240, 240)";
+			ctx.lineWidth = 1;
+			drawGrid();
+			
+			// draw region boundary
+			ctx.strokeStyle = "rgb(255, 0, 0)";
+			ctx.lineWidth = 3;
+			drawBoundary();
+			
+			// draw text
+			ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+			drawRectangle({x:-4, y:1}, {x:4, y:0});
+			ctx.fillStyle = "rgba(150, 0, 0, 1)";
+			ctx.font = "30px Arial";
+			ctx.fillText("Invalid polygon or not tilable", cameraCoord.x - 195, cameraCoord.y - 15);
+		}
+	}
+}
+
+/* Primitive drawing function */
 
 function clearCanvas(){
 	ctx.fillStyle = "rgba(255, 255, 255, 1)";
@@ -22,58 +89,52 @@ function clearCanvas(){
 
 function drawLine(p0, p1){
 	ctx.beginPath();
-	ctx.moveTo(p0.x * unitSize + coordBoardScreenOffX, -p0.y * unitSize + coordBoardScreenOffY);
-	ctx.lineTo(p1.x * unitSize + coordBoardScreenOffX, -p1.y * unitSize + coordBoardScreenOffY);
+	ctx.moveTo(p0.x * unitSize + cameraCoord.x, -p0.y * unitSize + cameraCoord.y);
+	ctx.lineTo(p1.x * unitSize + cameraCoord.x, -p1.y * unitSize + cameraCoord.y);
+	ctx.stroke();
+}
+
+function drawGradientLine(p0, p1, c1, c2){
+	var x0 = p0.x * unitSize + cameraCoord.x;
+	var y0 = -p0.y * unitSize + cameraCoord.y;
+	var x1 = p1.x * unitSize + cameraCoord.x;
+	var y1 = -p1.y * unitSize + cameraCoord.y;
+	var grad = ctx.createLinearGradient(x0, y0, x1, y1);
+	grad.addColorStop(0, c1);
+	grad.addColorStop(1, c2);
+	ctx.strokeStyle = grad;
+	ctx.beginPath();
+	ctx.moveTo(x0, y0);
+	ctx.lineTo(x1, y1);
 	ctx.stroke();
 }
 
 function drawText(p, text){
 	var offX = 3;
 	var offY = -3;
-	ctx.fillText(text, p.x * unitSize + coordBoardScreenOffX + offX, -p.y * unitSize + coordBoardScreenOffY + offY);
+	ctx.fillText(text, p.x * unitSize + cameraCoord.x + offX, -p.y * unitSize + cameraCoord.y + offY);
 }
 
-function draw(){
-	clearCanvas();
-	if(!existTiling){
-		// draw region boundary
-		ctx.strokeStyle = "rgb(255, 0, 0)";
-		ctx.lineWidth = 3;
-		drawBoundary();
-
-		// draw text
-		ctx.fillStyle = "rgba(150, 0, 0, 1)";
-		ctx.font = "30px Arial";
-		ctx.fillText("Invalid polygon or not tilable", coordBoardScreenOffX-200, coordBoardScreenOffY);
-	}else{
-		// draw grid
-		ctx.strokeStyle = "rgb(220, 220, 220)";
-		ctx.lineWidth = 1;
-		drawGrid();
-
-		// draw trominoes
-		ctx.fillStyle = "rgba(230, 230, 230, 1)";
-		ctx.strokeStyle = "rgb(100, 100, 100)";
-		ctx.lineWidth = 3;
-		drawTrominoes();
-
-		// draw region boundary
-		ctx.strokeStyle = "rgb(0, 0, 0)";
-		ctx.lineWidth = 3;
-		drawBoundary();
-
-		// draw height
-		ctx.fillStyle = "rgba(0, 150, 150, 1)";
-		ctx.font = "15px Arial";
-		drawHeight();
-	}
+function drawCircle(p, radius){
+	ctx.beginPath();
+	ctx.arc(p.x * unitSize + cameraCoord.x, -p.y * unitSize + cameraCoord.y, radius, 0, 2 * Math.PI, false);
+	ctx.fill();
 }
 
+function drawRectangle(p1, p2){
+	var x1 = p1.x * unitSize + cameraCoord.x;
+	var x2 = p2.x * unitSize + cameraCoord.x;
+	var y1 = -p1.y * unitSize + cameraCoord.y;
+	var y2 = -p2.y * unitSize + cameraCoord.y;
+	ctx.fillRect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x1 - x2), Math.abs(y1 - y2));
+}
+
+/**/
 function drawGrid(){
-	var lbX = Math.round((-coordBoardScreenOffX) / unitSize) - 1;
-	var ubX = Math.round((-coordBoardScreenOffX + elementCanvas.width ) / unitSize) + 1;
-	var lbY = Math.round((coordBoardScreenOffY - elementCanvas.height) / unitSize) - 1;
-	var ubY = Math.round((coordBoardScreenOffY) / unitSize) + 1;
+	var lbX = Math.round((-cameraCoord.x) / unitSize) - 1;
+	var ubX = Math.round((-cameraCoord.x + elementCanvas.width ) / unitSize) + 1;
+	var lbY = Math.round((cameraCoord.y - elementCanvas.height) / unitSize) - 1;
+	var ubY = Math.round((cameraCoord.y) / unitSize) + 1;
 	for(var x = lbX; x <= ubX; x++){
 		drawLine({x:x, y:lbY}, {x:x, y:ubY});
 	}
@@ -105,6 +166,41 @@ function drawBoundary(){
 	}
 }
 
+function drawEndPoint(){
+	var p = getBoundaryLastPoint();
+	if(bR.length != 0){
+		var lastChar = bR.charAt(bR.length - 1);
+		
+		var p1;
+		var p2;
+		switch(lastChar){
+		case "e":
+			p1 = {x:-0.3, y: 0.2};
+			p2 = {x:-0.3, y:-0.2};
+			break;
+		case "w":
+			p1 = {x: 0.3, y: 0.2};
+			p2 = {x: 0.3, y:-0.2};
+			break;
+		case "n":
+			p1 = {x:-0.2, y:-0.3};
+			p2 = {x: 0.2, y:-0.3};
+			break;
+		case "s":
+			p1 = {x:-0.2, y: 0.3};
+			p2 = {x: 0.2, y: 0.3};
+			break;
+		}
+		p1.x += p.x;
+		p1.y += p.y;
+		p2.x += p.x;
+		p2.y += p.y;
+		drawLine(p1, p);
+		drawLine(p, p2);
+	}
+	drawCircle(p, 10);
+}
+
 function drawHeight(){
 	for(var i = 0; i < point.length; i++){
 		var p = point[i];
@@ -132,7 +228,7 @@ function drawTrominoes(){
 		}
 		var p = {x: t.origin.x, y:t.origin.y};
 		ctx.beginPath();
-		ctx.moveTo(p.x * unitSize + coordBoardScreenOffX, -p.y * unitSize + coordBoardScreenOffY);
+		ctx.moveTo(p.x * unitSize + cameraCoord.x, -p.y * unitSize + cameraCoord.y);
 		for(var j = 0; j < 8; j++){
 			var lastP = {x: p.x, y:p.y};
 			var c = tileWord.charAt(j);
@@ -150,10 +246,31 @@ function drawTrominoes(){
 				p.y = p.y - 1;
 				break;
 			}
-			ctx.lineTo(p.x * unitSize + coordBoardScreenOffX, -p.y * unitSize + coordBoardScreenOffY);
+			ctx.lineTo(p.x * unitSize + cameraCoord.x, -p.y * unitSize + cameraCoord.y);
 		}
 		ctx.closePath();
 		ctx.fill();
 		ctx.stroke();
 	}
 }
+
+function drawCurrentBoundary(){
+	var maxHeight = 0;
+	for(var i = 0; i < point.length; i++){
+		if(isBoundaryPoint[i]){
+			maxHeight = Math.max(maxHeight, point[i].height);
+		}
+	}
+	for(var i = 0; i < point.length; i++){
+		if(isBoundaryPoint[i]){
+			var relativeHeight1 = point[i].height / maxHeight;
+			var relativeHeight2 = point[point[i].next].height / maxHeight;
+			relativeHeight1 = relativeHeight1 * relativeHeight1;
+			relativeHeight2 = relativeHeight2 * relativeHeight2;
+			var color1 = "rgb(" + 0 + ", " + Math.floor(255 * relativeHeight1) + ", " + 0 + ")";
+			var color2 = "rgb(" + 0 + ", " + Math.floor(255 * relativeHeight2) + ", " + 0 + ")";
+			drawGradientLine(point[i], point[point[i].next], color1, color2);
+		}
+	}
+}
+
