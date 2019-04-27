@@ -21,8 +21,12 @@ function draw(){
 		drawGrid();
 
 		// draw region boundary
-		ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
 		ctx.lineWidth = 5;
+		if(existTiling){
+			ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
+		}else{
+			ctx.strokeStyle = "rgba(255, 0, 0, 0.3)";
+		}
 		drawBoundary();
 		
 		// draw movable boundary last point
@@ -255,6 +259,8 @@ function drawTrominoes(){
 }
 
 function drawCurrentBoundary(){
+	if(bR.length == 0) return;
+	
 	var maxHeight = 0;
 	for(var i = 0; i < point.length; i++){
 		if(isBoundaryPoint[i]){
@@ -263,13 +269,17 @@ function drawCurrentBoundary(){
 	}
 	for(var i = 0; i < point.length; i++){
 		if(isBoundaryPoint[i]){
-			var relativeHeight1 = point[i].height / maxHeight;
-			var relativeHeight2 = point[point[i].next].height / maxHeight;
-			relativeHeight1 = relativeHeight1 * relativeHeight1;
-			relativeHeight2 = relativeHeight2 * relativeHeight2;
-			var color1 = "rgb(" + 0 + ", " + Math.floor(255 * relativeHeight1) + ", " + 0 + ")";
-			var color2 = "rgb(" + 0 + ", " + Math.floor(255 * relativeHeight2) + ", " + 0 + ")";
-			drawGradientLine(point[i], point[point[i].next], color1, color2);
+			var p1 = point[i];
+			var p2 = point[i].next;
+			var color1 = "black";
+			var color2 = "black";
+			if(p1.height == maxHeight){
+				color1 = "rgb(0, 255, 0)";
+			}
+			if(p2.height == maxHeight){
+				color2 = "rgb(0, 255, 0)";
+			}
+			drawGradientLine(p1, p2, color1, color2);
 		}
 	}
 }

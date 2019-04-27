@@ -1,24 +1,47 @@
-
+//eeeneeeneeeneeeneeenwwwswwwswwwswwwneeeneeeneeenwwwswwwswwwswwwseeeswwws
 var isBoundaryPoint = [];
 var basePointIndex = -1;
 var basePoint = {};
 
+var iterationCounter = 0;
+var maximumIterationCounter = 0;
+
+// Main algorithm loop
 function computeTiling(){
 	initializeBoundary();
-	var maxIteration = 100;
+	var maxIteration = 500;
 	while(isTilable){
 		iterationStep();
-		maxIteration--; if(maxIteration < 0) break;
+		if(maxIteration-- < 0) break;
+	}
+	
+	// Check if there is two different height in one point
+	// This is done in O(n log n). I couldn't figure out how to do it in O(n).
+	point.sort(function (p1, p2) {
+		if(p1.x - p2.x == 0){
+			if(p1.y - p2.y == 0){
+				return p1.heigth - p2.heigth;
+			}
+			return p1.y - p2.y;
+		}
+		return p1.x - p2.x;
+	});
+	for(var i = 0; i + 1 < point.length; i++){
+		if(point[i].x == point[i + 1].x && point[i].y == point[i + 1].y && point[i].height != point[i + 1].height){
+			existTiling = false;
+			isTilable = false;
+		}
 	}
 }
 
+// Algorithm initialization
 function initializeBoundary(){
 	tile = [];
 	point = [];
 	
+	initTrie();
 	isBoundaryPoint = [];
 	
-	initTrie();
 	initPriorityQueue(bR.length);
 	
 	
@@ -34,6 +57,8 @@ function initializeBoundary(){
 	isBoundaryPoint.push(true);
 	
 	if(bR.length == 0){
+		existTiling = true;
+		isTilable = false;
 		return;
 	}
 	
@@ -44,8 +69,8 @@ function initializeBoundary(){
 		point[i + 1].id = i + 1;
 		isBoundaryPoint.push(true);
 
-		point[i].next = point[i + 1].id;
-		point[i + 1].prev = point[i].id;
+		point[i].next = point[i + 1];
+		point[i + 1].prev = point[i];
 	}
 	
 	// If the boundary cannot close into a loop
@@ -58,8 +83,11 @@ function initializeBoundary(){
 		existTiling = true;
 		isTilable = true;
 
-		point[0].prev = bR.length - 1;
-		point[bR.length - 1].next = 0;
+		iterationCounter = 0;
+		maximumIterationCounter = getArea() / 3;
+		
+		point[0].prev = point[bR.length - 1];
+		point[bR.length - 1].next = point[0];
 		isBoundaryPoint[bR.length] = false;
 		
 		for(var i = 0; i < bR.length; i++){
@@ -71,6 +99,7 @@ function initializeBoundary(){
 	}
 }
 
+// Algorithm iteration
 function iterationStep(){
 	if(!isTilable) return;
 	
@@ -79,9 +108,9 @@ function iterationStep(){
 	maxPoint = popPriorityQueue();
 	while(true){
 		if(isBoundaryPoint[maxPoint.id]){
-			var p0 = point[maxPoint.next];
-			var p1 = point[p0.prev];
-			var p2 = point[p1.prev];
+			var p0 = maxPoint.next;
+			var p1 = p0.prev;
+			var p2 = p1.prev;
 			if(p0.lastChar === p1.lastChar && p1.lastChar === p2.lastChar){
 				break;
 			}
@@ -90,7 +119,7 @@ function iterationStep(){
 	}
 	
 	// Get the I-tromino direction
-	var tileDirection = point[maxPoint.prev].lastChar;
+	var tileDirection = maxPoint.prev.lastChar;
 	
 	// Save the I-tromino information
 	tile.push({direction:tileDirection, origin:{x:maxPoint.x, y:maxPoint.y}});
@@ -124,15 +153,15 @@ function iterationStep(){
 	var cutPoint1 = maxPoint;
 	while(cutPoint1.lastChar === inverseTileWord.charAt(inverseTileWordIndex1) && inverseTileWordIndex1 < 8){
 		isBoundaryPoint[cutPoint1.id] = false;
-		cutPoint1 = point[cutPoint1.prev];
+		cutPoint1 = cutPoint1.prev;
 		inverseTileWordIndex1++;
 	}
 
 	var inverseTileWordIndex2 = 7;
 	var cutPoint2 = maxPoint;
-	while(point[cutPoint2.next].lastChar === inverseTileWord.charAt(inverseTileWordIndex2) && inverseTileWordIndex1 < inverseTileWordIndex2){
+	while(cutPoint2.next.lastChar === inverseTileWord.charAt(inverseTileWordIndex2) && inverseTileWordIndex1 < inverseTileWordIndex2){
 		isBoundaryPoint[cutPoint2.id] = false;
-		cutPoint2 = point[cutPoint2.next];
+		cutPoint2 = cutPoint2.next;
 		inverseTileWordIndex2--;
 	}
 	
@@ -148,8 +177,8 @@ function iterationStep(){
 		isBoundaryPoint.push(true);
 		
 		// Link the new point to travelingPoint2
-		newPoint.prev = travelingPoint2.id
-		travelingPoint2.next = newPoint.id;
+		newPoint.prev = travelingPoint2;
+		travelingPoint2.next = newPoint;
 		
 		if(travelingPoint2.height == newPoint.height){
 			pushPriorityQueue(newPoint);
@@ -157,8 +186,8 @@ function iterationStep(){
 		
 		travelingPoint2 = newPoint;
 	}
-	travelingPoint2.next = cutPoint2.id;
-	cutPoint2.prev = travelingPoint2.id;
+	travelingPoint2.next = cutPoint2;
+	cutPoint2.prev = travelingPoint2;
 	cutPoint2.lastChar = tileWord[inverseTileWordIndex2];
 
 	if(travelingPoint2.height == cutPoint2.height){
@@ -169,16 +198,16 @@ function iterationStep(){
 	var degeneratedBoundary;
 	do{
 		degeneratedBoundary = false;
-		var pairChar = cutPoint2.lastChar + point[cutPoint2.next].lastChar;
+		var pairChar = cutPoint2.lastChar + cutPoint2.next.lastChar;
 		if(pairChar === "ns" || pairChar === "sn" || pairChar === "ew" || pairChar === "we"){
-			var p0 = point[cutPoint2.prev];
-			var p1 = point[p0.next];
-			var p2 = point[p1.next];
-			var p3 = point[p2.next];
+			var p0 = cutPoint2.prev;
+			var p1 = p0.next;
+			var p2 = p1.next;
+			var p3 = p2.next;
 			isBoundaryPoint[p1.id] = false;
 			isBoundaryPoint[p2.id] = false;
-			p0.next = p3.id;
-			p3.prev = p0.id;
+			p0.next = p3;
+			p3.prev = p0;
 			cutPoint2 = p0;
 			degeneratedBoundary = true;
 		}
@@ -186,16 +215,19 @@ function iterationStep(){
 
 	// Update the base point of the boundary to prepare for the next iteration
 	basePoint = cutPoint2;
-	
-	// If the cutPoint meets, the region is a tromino and stop the iteration.
-	if(cutPoint1.id == cutPoint2.id){
+
+	// Iteration halts if is added a sufficient number of trominoes.
+	iterationCounter++;
+	if(!(iterationCounter < maximumIterationCounter)){
 		isTilable = false;
+		return;
 	}
 }
 
 // Create a new point from point "p" in the direction "dir"
 function newPointFrom(p, dir){
 	var newPoint = {};
+
 
 	var trieNode = p.trieNode;
 
@@ -204,6 +236,7 @@ function newPointFrom(p, dir){
 		newPoint.x = p.x + 1;
 		newPoint.y = p.y;
 		trieNode = addTrieNode(trieNode, "a");
+		//newPoint.ww = p.ww + "a";
 		break;
 	case "w":
 		newPoint.x = p.x - 1;
@@ -230,8 +263,54 @@ function newPointFrom(p, dir){
 		}
 	}
 	newPoint.trieNode = trieNode;
+	
 	newPoint.lastChar = dir;
 	newPoint.height = trieNode.alternating;
 	return newPoint;
+}
+
+// Height function
+function height(w){
+	var a = 0;
+	var expectedChar = "-";
+	for(var i = 0; i < w.length; i++){
+		var c = w.charAt(i);
+		if(c !== expectedChar){
+			expectedChar = c;
+			a++;
+		}
+	}
+	return a;
+}
+
+// Area of the region
+function getArea(){
+	var lastP = {x: 0, y:0};
+	var p = {x: 0, y:0};
+	var area = 0;
+	for(var j = 0; j < bR.length; j++){
+		var c = bR.charAt(j);
+		
+		lastP.x = p.x;
+		lastP.y = p.y;
+		
+		switch(c){
+		case "e":
+			p.x = p.x + 1;
+			break;
+		case "w":
+			p.x = p.x - 1;
+			break;
+		case "n":
+			p.y = p.y + 1;
+			break;
+		case "s":
+			p.y = p.y - 1;
+			break;
+		}
+		
+		area += lastP.x * p.y - p.x * lastP.y;
+	}
+	return Math.abs(area / 2);
 }
 

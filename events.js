@@ -18,21 +18,46 @@ var mouse = {
 var elementInputText;
 // Canvas
 var elementCanvas;
+// Buttons
+var elementButtonEdit;
+var elementButtonClearTrominoes;
+var elementButtonAddTromino;
+var elementButtonAddAllTrominoes;
+var elementButtonShowBoundary;
+
+function updateButtonStatus(){
+	if(existTiling){
+		elementButtonClearTrominoes.disabled = false;
+		elementButtonShowBoundary.disabled = false;
+		if(isTilable){
+			elementButtonAddTromino.disabled = false;
+			elementButtonAddAllTrominoes.disabled = false;
+		}else{
+			elementButtonAddTromino.disabled = true;
+			elementButtonAddAllTrominoes.disabled = true;
+		}
+	}else{
+		elementButtonClearTrominoes.disabled = true;
+		elementButtonAddTromino.disabled = true;
+		elementButtonAddAllTrominoes.disabled = true;
+		elementButtonShowBoundary.disabled = true;
+	}
+}
 
 /*** Event Initialize ***/
 function eventInitialize(){
 	elementInputText = document.getElementById("inputText");
 	elementInputText.addEventListener("input", eventInputText);
 
-	var elementButtonCompute = document.getElementById("buttonCompute");
-	elementButtonCompute.addEventListener("click", eventButtonComputePress);
-	var elementButtonInitialize = document.getElementById("buttonInitialize");
-	elementButtonInitialize.addEventListener("click", eventButtonInitializePress);
-	var elementButtonStep = document.getElementById("buttonStep");
-	elementButtonStep.addEventListener("click", eventButtonStepPress);
-	var elementButtonEdit = document.getElementById("buttonEdit");
+	elementButtonEdit = document.getElementById("buttonEdit");
 	elementButtonEdit.addEventListener("click", eventButtonEditPress);
-	var elementButtonShowBoundary = document.getElementById("buttonShowBoundary");
+	elementButtonClearTrominoes = document.getElementById("buttonClearTrominoes");
+	elementButtonClearTrominoes.addEventListener("click", eventButtonClearTrominoesPress);
+	elementButtonAddTromino = document.getElementById("buttonAddTromino");
+	elementButtonAddTromino.addEventListener("click", eventButtonAddTrominoPress);
+	elementButtonAddAllTrominoes = document.getElementById("buttonAddAllTrominoes");
+	elementButtonAddAllTrominoes.addEventListener("click", eventButtonAddAllTrominoesPress);
+	elementButtonShowBoundary = document.getElementById("buttonShowBoundary");
 	elementButtonShowBoundary.addEventListener("click", eventButtonShowBoundaryPress);
 
 	elementCanvas = document.getElementById("canvasMain");
@@ -46,39 +71,62 @@ function eventInitialize(){
 	draw();
 }
 
-/*** Input text ***/
+/*** Event Handling ***/
+// Input text
 function eventInputText(evt){
 	bR = elementInputText.value;
-	initializeBoundary();
-	draw();
-}
-
-/*** Button Press ***/
-function eventButtonComputePress(evt){
-	bR = elementInputText.value;
 	computeTiling();
+	if(existTiling){
+		initializeBoundary();
+	}
 	draw();
+	updateButtonStatus();
 }
 
-function eventButtonInitializePress(evt){
-	bR = elementInputText.value;
-	initializeBoundary();
-	draw();
-}
-
-function eventButtonStepPress(evt){
-	iterationStep();
-	draw();
-}
-
+// Button Press
 function eventButtonEditPress(evt){
 	initializeBoundary();
 	if(editMode){
 		editMode = false;
+		computeTiling();
+		if(existTiling){
+			initializeBoundary();
+		}else{
+			initializeBoundary();
+			existTiling = false;
+		}
+		updateButtonStatus();
 	}else{
+		elementButtonClearTrominoes.disabled = true;
+		elementButtonAddTromino.disabled = true;
+		elementButtonAddAllTrominoes.disabled = true;
+		elementButtonShowBoundary.disabled = true;
 		editMode = true;
 	}
 	draw();
+}
+
+function eventButtonClearTrominoesPress(evt){
+	bR = elementInputText.value;
+	computeTiling();
+	if(existTiling){
+		initializeBoundary();
+	}
+	draw();
+	updateButtonStatus();
+}
+
+function eventButtonAddTrominoPress(evt){
+	iterationStep();
+	draw();
+	updateButtonStatus();
+}
+
+function eventButtonAddAllTrominoesPress(evt){
+	bR = elementInputText.value;
+	computeTiling();
+	draw();
+	updateButtonStatus();
 }
 
 function eventButtonShowBoundaryPress(evt){
@@ -86,8 +134,7 @@ function eventButtonShowBoundaryPress(evt){
 	draw();
 }
 
-/*** Event Mouse Down ***/
-
+// Mouse
 function eventMouseDown(evt){
 	updateMouseCoord(evt);
 	
@@ -103,16 +150,12 @@ function eventMouseDown(evt){
 	draw();
 }
 
-/*** Event Mouse Up ***/
-
 function eventMouseUp(evt){
 	updateMouseCoord(evt);
 	
 	isLastPointSelected = false;
 	draw();
 }
-
-/*** Event Mouse Move ***/
 
 function eventMouseMove(evt){
 	updateMouseCoord(evt);
@@ -147,12 +190,16 @@ function eventMouseMove(evt){
 				}
 			}
 			elementInputText.value = bR;
+			elementInputText.focus();
 			if(Math.abs(targetP.x - p.x) > 0 || Math.abs(targetP.y - p.y) > 0){
-				initializeBoundary();
+				computeTiling();
+				if(existTiling){
+					initializeBoundary();
+				}else{
+					initializeBoundary();
+					existTiling = false;
+				}
 			}
-		}
-		if(editMode){
-			
 		}else{
 			cameraCoord.x += mouse.x - mouse.lastX;
 			cameraCoord.y += mouse.y - mouse.lastY;
@@ -160,8 +207,6 @@ function eventMouseMove(evt){
 		draw();
 	}
 }
-
-/*** Mouse ***/
 
 function updateMouseCoord(evt){
 	var m = {x:-1, y:-1};
