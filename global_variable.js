@@ -11,6 +11,8 @@ var showBoundaryInfo = false;
 var isLastPointSelected = false;
 var selectedObjectNumber = 0;
 
+var errorString = "";
+
 // events.js, draw.js, tiling.js
 var bR = "";
 var tile = [];

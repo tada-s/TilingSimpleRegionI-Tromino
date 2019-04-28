@@ -1,8 +1,8 @@
 
 function initDraw(){
 	var elementCanvas = document.getElementById("canvasMain");
-	cameraCoord.x = elementCanvas.width / 2 - 50;
-	cameraCoord.y = elementCanvas.height / 2 + 200;
+	cameraCoord.x = elementCanvas.width / 2;
+	cameraCoord.y = elementCanvas.height / 2;
 	ctx = elementCanvas.getContext("2d");
 
 	ctx.lineJoin = "round";
@@ -49,11 +49,7 @@ function draw(){
 			ctx.strokeStyle = "rgb(100, 100, 100)";
 			ctx.lineWidth = 3;
 			drawTrominoes();
-
-			// draw region boundary
-			ctx.strokeStyle = "rgb(0, 0, 0)";
-			ctx.lineWidth = 3;
-			drawBoundary();
+			
 			if(showBoundaryInfo){
 				// draw height
 				ctx.fillStyle = "rgba(0, 150, 150, 1)";
@@ -62,6 +58,11 @@ function draw(){
 				
 				// draw boundary color
 				drawCurrentBoundary();
+			}else{
+				// draw region boundary
+				ctx.strokeStyle = "rgb(0, 0, 0)";
+				ctx.lineWidth = 3;
+				drawBoundary();
 			}
 		}else{
 			// draw grid
@@ -79,7 +80,7 @@ function draw(){
 			drawRectangle({x:-4, y:1}, {x:4, y:0});
 			ctx.fillStyle = "rgba(150, 0, 0, 1)";
 			ctx.font = "30px Arial";
-			ctx.fillText("Invalid polygon or not tilable", cameraCoord.x - 195, cameraCoord.y - 15);
+			ctx.fillText(errorString, cameraCoord.x - 195, cameraCoord.y - 15);
 		}
 	}
 }
@@ -271,8 +272,8 @@ function drawCurrentBoundary(){
 		if(isBoundaryPoint[i]){
 			var p1 = point[i];
 			var p2 = point[i].next;
-			var color1 = "black";
-			var color2 = "black";
+			var color1 = "rgb(0, 100, 0)";
+			var color2 = "rgb(0, 100, 0)";
 			if(p1.height == maxHeight){
 				color1 = "rgb(0, 255, 0)";
 			}

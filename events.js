@@ -66,8 +66,11 @@ function eventInitialize(){
 	elementCanvas.addEventListener("mousemove", eventMouseMove);
 	
 	initDraw();
+
 	bR = elementInputText.value;
+	checkTilability();
 	initializeBoundary();
+
 	draw();
 }
 
@@ -75,8 +78,7 @@ function eventInitialize(){
 // Input text
 function eventInputText(evt){
 	bR = elementInputText.value;
-	computeTiling();
-	if(existTiling){
+	if(checkTilability()){
 		initializeBoundary();
 	}
 	draw();
@@ -88,8 +90,7 @@ function eventButtonEditPress(evt){
 	initializeBoundary();
 	if(editMode){
 		editMode = false;
-		computeTiling();
-		if(existTiling){
+		if(checkTilability()){
 			initializeBoundary();
 		}else{
 			initializeBoundary();
@@ -108,8 +109,7 @@ function eventButtonEditPress(evt){
 
 function eventButtonClearTrominoesPress(evt){
 	bR = elementInputText.value;
-	computeTiling();
-	if(existTiling){
+	if(checkTilability()){
 		initializeBoundary();
 	}
 	draw();
@@ -192,8 +192,7 @@ function eventMouseMove(evt){
 			elementInputText.value = bR;
 			elementInputText.focus();
 			if(Math.abs(targetP.x - p.x) > 0 || Math.abs(targetP.y - p.y) > 0){
-				computeTiling();
-				if(existTiling){
+				if(checkTilability()){
 					initializeBoundary();
 				}else{
 					initializeBoundary();

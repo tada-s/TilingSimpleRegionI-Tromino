@@ -1,4 +1,5 @@
 //eeeneeeneeeneeeneeenwwwswwwswwwswwwneeeneeeneeenwwwswwwswwwswwwseeeswwws
+//eeenwnennnwswwswwsssee
 var isBoundaryPoint = [];
 var basePointIndex = -1;
 var basePoint = {};
@@ -6,17 +7,29 @@ var basePoint = {};
 var iterationCounter = 0;
 var maximumIterationCounter = 0;
 
-// Main algorithm loop
-function computeTiling(){
+function checkTilability(){
 	initializeBoundary();
-	var maxIteration = 500;
-	while(isTilable){
-		iterationStep();
-		if(maxIteration-- < 0) break;
-	}
 	
-	// Check if there is two different height in one point
-	// This is done in O(n log n). I couldn't figure out how to do it in O(n).
+	// The boundary must be a closed loop
+	var firstPoint = point[0];
+	var lastPoint = point[point.length - 1];
+	if(!(firstPoint.x == lastPoint.x && firstPoint.y == lastPoint.y)){
+		existTiling = false;
+		isTilable = false;
+		errorString = "The boundary is not a closed loop.";
+		return false;
+	}
+
+	// The boundary must have the initial and final height equal
+	if(!(firstPoint.height == lastPoint.height)){
+		existTiling = false;
+		isTilable = false;
+		errorString = "The initial and final height is not equal.";
+		return false;
+	}
+	point.pop();
+	
+	// The boundary must be a simple polygon
 	point.sort(function (p1, p2) {
 		if(p1.x - p2.x == 0){
 			if(p1.y - p2.y == 0){
@@ -27,10 +40,70 @@ function computeTiling(){
 		return p1.x - p2.x;
 	});
 	for(var i = 0; i + 1 < point.length; i++){
-		if(point[i].x == point[i + 1].x && point[i].y == point[i + 1].y && point[i].height != point[i + 1].height){
+		var p1 = point[i];
+		var p2 = point[i + 1];
+		if(p1.x == p2.x && p1.y == p2.y){
 			existTiling = false;
 			isTilable = false;
+			errorString = "The boundary is not a simple polygon.";
+			return false;
 		}
+	}
+	
+	// The boundary must be counter-clockwise
+	if(getArea() < 0){
+		existTiling = false;
+		isTilable = false;
+		errorString = "The boundary is not counter-clockwise.";
+		return false;
+	}
+	
+	// Try computing a tiling
+	computeTiling();
+
+	// Check point with two different height
+	point.sort(function (p1, p2) {
+		if(p1.x - p2.x == 0){
+			if(p1.y - p2.y == 0){
+				return p1.heigth - p2.heigth;
+			}
+			return p1.y - p2.y;
+		}
+		return p1.x - p2.x;
+	});
+	for(var i = 0; i + 1 < point.length; i++){
+		var p1 = point[i];
+		var p2 = point[i + 1];
+		if(p1.x == p2.x && p1.y == p2.y && p1.height != p2.height){
+			point = [];
+			var p = {x:0, y:0};
+			point.push(p);
+			for(var i = 0; i < bR.length - 1; i++){
+				var c = bR.charAt(i);
+
+				var p2 = {x:p.x, y:p.y};
+				incrementPoint(p2, c);
+				point.push(p2);
+				p = p2;
+			}
+			existTiling = false;
+			isTilable = false;
+			errorString = "The polygon is not tilable.";
+			return false;
+		}
+	}
+	
+	existTiling = true;
+	return true;
+}
+
+// Main algorithm loop
+function computeTiling(){
+	initializeBoundary();
+	var maxIteration = 500;
+	while(isTilable){
+		iterationStep();
+		if(maxIteration-- < 0) break;
 	}
 }
 
@@ -72,29 +145,20 @@ function initializeBoundary(){
 		point[i].next = point[i + 1];
 		point[i + 1].prev = point[i];
 	}
-	
-	// If the boundary cannot close into a loop
-	if(!(point[0].x == point[bR.length].x && point[0].y == point[bR.length].y) || point[bR.length].height != 0){
-		// Then, there is no tiling for the region
-		existTiling = false;
-		isTilable = false;
-	}else{
-		// Otherwise, close the loop and prepare for the iteration
-		existTiling = true;
-		isTilable = true;
+	isBoundaryPoint[bR.length] = false;
+	point[0].prev = point[bR.length - 1];
+	point[bR.length - 1].next = point[0];
 
-		iterationCounter = 0;
-		maximumIterationCounter = getArea() / 3;
-		
-		point[0].prev = point[bR.length - 1];
-		point[bR.length - 1].next = point[0];
-		isBoundaryPoint[bR.length] = false;
-		
-		for(var i = 0; i < bR.length; i++){
-			var i2 = (i + 1) % bR.length;
-			if(point[i].height == point[i2].height){
-				pushPriorityQueue(point[i2]);
-			}
+	// Prepare for the iteration
+	isTilable = true;
+
+	iterationCounter = 0;
+	maximumIterationCounter = getArea() / 3;
+	
+	for(var i = 0; i < bR.length; i++){
+		var i2 = (i + 1) % bR.length;
+		if(point[i].height == point[i2].height){
+			pushPriorityQueue(point[i2]);
 		}
 	}
 }
@@ -294,23 +358,27 @@ function getArea(){
 		lastP.x = p.x;
 		lastP.y = p.y;
 		
-		switch(c){
-		case "e":
-			p.x = p.x + 1;
-			break;
-		case "w":
-			p.x = p.x - 1;
-			break;
-		case "n":
-			p.y = p.y + 1;
-			break;
-		case "s":
-			p.y = p.y - 1;
-			break;
-		}
+		incrementPoint(p, c)
 		
 		area += lastP.x * p.y - p.x * lastP.y;
 	}
-	return Math.abs(area / 2);
+	return area / 2;
+}
+
+function incrementPoint(p, dir){
+	switch(dir){
+	case "e":
+		p.x = p.x + 1;
+		break;
+	case "w":
+		p.x = p.x - 1;
+		break;
+	case "n":
+		p.y = p.y + 1;
+		break;
+	case "s":
+		p.y = p.y - 1;
+		break;
+	}
 }
 
