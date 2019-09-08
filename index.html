@@ -31,21 +31,7 @@
 			<canvas id="canvasMain" width="1000px" height="730px"></canvas>
 		</div>
 		
-		<p>
-&emsp;The input of the algorithm is a polyomino formatted in to a word (string) of the chacter <i>e</i>, <i>w</i>, <i>n</i> and <i>s</i> (the cardinal direction <i>east</i>, <i>west</i>, <i>north</i> and <i>south</i>). This string can be obtained by selecting any integer point of the polyomino as the <i>base point</i> and moving around the boundary (perimeter) counterclockwise until it closes a loop.<br>
-			<br>
-&emsp;The goal of the problem is find a I-tromino tiling for the given polyomino. The algorithm uses a <i>height function</i> which helps to find the position to place a I-tromino. In this implementation, the height <i>h(W)</i> is defined as follows: is the minimum number of alternations of characters (<i>e</i>, <i>w</i>, <i>n</i>, <i>s</i>) to represent the word <i>W</i> in the group <i>H'</i> where<br>
-&emsp;&emsp;<i>H' = &lt;e, w, n, s | ew = we = ns = sn = e<sup>3</sup> = w<sup>3</sup> = n<sup>3</sup> = s<sup>3</sup> = i&gt;</i>.<br>
-For example, the word <i>e<sup>7</sup>n<sup>3</sup>ens<sup>2</sup>w<sup>4</sup>n</i> have another representation <i>e<sup>2</sup>sw<sup>1</sup>n</i> in <i>H</i> where the number alternation is 4, which is the minumum possible. If the word is empty, the height is zero. This height function is used to every lattice point of the boundary.<br>
-			<br>
-&emsp;The position of the I-tromino is given by the highest point of the boundary and there will always exists at least two highest point that are adjacent to each other. Let <i>p<sub>1</sub></i> and <i>p<sub>2</sub></i> the highest adjacent points. The I-tromino is placed along the segment <i>p<sub>1</sub></i><i>p<sub>2</sub></i>, inside of the boundary. Removing the I-tromino from the original polyomino we have a new smaller polyomino. We repeat this process again: compute the height of the boundary and place the I-tromino in the highest point for the new polyomino until the polyomino is tiled completely.<br>
-			<br>
-&emsp;The author claims the time complexity of the algorithm can be <i>O(n)</i> (where <i>n</i> is the area of the polyomino) but couldn't achive it. A naive approach to compute the height function along the boundary gives a <i>O(n<sup>2</sup>)</i> time complexity by labeling each point of the boundary with the associated word. Using the <i style="font-family:'Arial';">trie</i> data structure, we can achieve the <i>O(n)</i> time complexity. Get the highest point of the boundary it could be an issue if we just search moving around the boundary in <i>O(n)</i> time. We can create a special <i style="font-family:'Arial';">"priority queue"</i> for this problem which performs <i>O(1)</i> time insertion and extraction assuming that every inserted number to the priority queue is a positive integer less than <i>n</i> (because this implementation of height function always gives a positive integer) and is not greater than the maximum number of the priority queue plus a constant term, <i>i.e.</i>, <i>x<sub>new</sub> ≤ x<sub>max</sub> + k</i> where <i>x<sub>new</sub></i> is a new number to insert, <i>x<sub>max</sub></i> is the maximum number of the priority queue and <i>k</i> is a constant (because at most 4 new points can appear when the boundary updates by a I-tromino and those height only differs to it's neighbors in at most 1). My issue is finding two points with same coordinates and different height during or after the execution. I couldn't solve this problem with a better than <i>O(n log n)</i> time complexity.<br>
-<br>
-<br>
-<br>
-<br>
-		</p>
+
 	</div>
 	
 	<script src="global_variable.js"></script>
